@@ -70,7 +70,9 @@ rule get_token = parse
   | "while" { WHILE }
   | "for"     { FOR }
   | "do"      { DO }
-  | "break"  { BREAK }
+  | "return"   { RETURN }
+  | "break"    { BREAK }
+  | "continue" { CONTINUE }
   | integer as i
       {
         try

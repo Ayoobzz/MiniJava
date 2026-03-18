@@ -123,7 +123,6 @@ let rec typecheck_call (cenv : class_env) (venv : variable_env) (vinit : S.t)
     end
   | _ -> error o (sprintf "A class is expected, got %s" (tmj_type_to_string o'.typ))
 
-
 (** [typecheck_expression_expecting cenv venv vinit instanceof typ1 e] checks, using the
     environments [cenv] and [venv], the set of initialized variables [vinit] and the [instanceof] function,
     that the expression [e] has a type compatible with type [typ1]. *)
@@ -223,6 +222,7 @@ and typecheck_expression (cenv : class_env) (venv : variable_env) (vinit : S.t)
     If [typecheck_instruction] succeeds, the new set of initialized variables is returned. *)
 let rec typecheck_instruction (cenv : class_env) (venv : variable_env) (vinit : S.t)
     (instanceof : identifier -> identifier -> bool)
+    (expected_ret : typ) (in_loop : bool)
     (inst : instruction) : (TMJ.instruction * S.t) =
   match inst with
   | ISetVar (v, e) ->
@@ -245,7 +245,7 @@ let rec typecheck_instruction (cenv : class_env) (venv : variable_env) (vinit : 
       let instructions', vinit =
         List.fold_left
           (fun (acc, vinit) inst ->
-          let inst, vinit = typecheck_instruction cenv venv vinit instanceof inst in
+          let inst, vinit = typecheck_instruction cenv venv vinit instanceof expected_ret in_loop inst in
           (inst :: acc, vinit))
         ([], vinit)
         instructions
@@ -255,16 +255,16 @@ let rec typecheck_instruction (cenv : class_env) (venv : variable_env) (vinit : 
   | IIf (cond, ithen, ielse) ->
       let cond' = typecheck_expression_expecting cenv venv vinit instanceof TypBool cond in
       let ithen', vinit1 =
-        typecheck_instruction cenv venv vinit instanceof ithen
+        typecheck_instruction cenv venv vinit instanceof expected_ret in_loop ithen
       in
       let ielse', vinit2 =
-        typecheck_instruction cenv venv vinit instanceof ielse
+        typecheck_instruction cenv venv vinit instanceof expected_ret in_loop ielse
       in
       (TMJ.IIf (cond', ithen', ielse'), S.inter vinit1 vinit2)
 
   | IWhile (cond, ibody) ->
       let cond' = typecheck_expression_expecting cenv venv vinit instanceof TypBool cond in
-      let ibody', vinit = typecheck_instruction cenv venv vinit instanceof ibody in
+      let ibody', vinit = typecheck_instruction cenv venv vinit instanceof expected_ret true ibody in
       (TMJ.IWhile (cond', ibody'), vinit)
 
   | ISyso e ->
@@ -279,13 +279,25 @@ let rec typecheck_instruction (cenv : class_env) (venv : variable_env) (vinit : 
       let typ2 = vlookup id2 venv in
       let vinit2 = S.add (Location.content id2) vinit in
       let e2' = typecheck_expression_expecting cenv venv vinit2 instanceof typ2 e2 in
-      let body', _ = typecheck_instruction cenv venv vinit instanceof body in
+      let body', _ = typecheck_instruction cenv venv vinit instanceof expected_ret true body in
       (TMJ.IFor (Location.content id1, type_lmj_to_tmj typ1, e1', cond', Location.content id2, type_lmj_to_tmj typ2, e2', body'), vinit)
 
   | IDoWhile (body, cond) ->
-      let body', vinit1 = typecheck_instruction cenv venv vinit instanceof body in
+      let body', vinit1 = typecheck_instruction cenv venv vinit instanceof expected_ret true body in
       let cond' = typecheck_expression_expecting cenv venv vinit1 instanceof TypBool cond in
-      (TMJ.IDoWhile (body', cond'), vinit)
+      (TMJ.IDoWhile (body', cond'), vinit1)
+
+  | IReturn e ->
+      let e' = typecheck_expression_expecting cenv venv vinit instanceof expected_ret e in
+      (TMJ.IReturn e', vinit)
+
+  | IBreak ->
+      if not in_loop then raise (Error "break outside loop");
+      (TMJ.IBreak, vinit)
+      
+  | IContinue ->
+      if not in_loop then raise (Error "continue outside loop");
+      (TMJ.IContinue, vinit)
 
 (** [occurences x bindings] returns the elements in [bindings] that have [x] has identifier. *)
 let occurrences (x : string) (bindings : (identifier * 'a) list) : identifier list =
@@ -307,6 +319,17 @@ let variable_map (decls : (identifier * typ) list) : variable_env =
 (** [method_map decls] creates an environment for methods using the association list [decls]. *)
 let method_map (decls : (identifier * method_type) list) : method_env =
   map_of_association_list "Method" decls
+
+let rec typecheck_instruction_list (cenv : class_env) (venv : variable_env) (vinit : S.t)
+    (instanceof : identifier -> identifier -> bool)
+    (expected_ret : typ) (in_loop : bool)
+    (insts : instruction list) : (TMJ.instruction list * S.t) =
+  List.fold_left
+    (fun (acc, vinit) inst ->
+      let inst', vinit' = typecheck_instruction cenv venv vinit instanceof expected_ret in_loop inst in
+      (inst' :: acc, vinit')
+    ) ([], vinit) insts
+  |> fun (l, v) -> (List.rev l, v)
 
 (** [typecheck_method cenv venv instanceof m] checks, using the environments [cenv] and [venv]
     and the [instanceof] function, that the method [m] is well typed. *)
@@ -343,7 +366,7 @@ let typecheck_method (cenv : class_env) (venv : variable_env)
     S.diff (SM.domain venv) (SM.domain mlocals)
   in
   let body', vinit =
-    match typecheck_instruction cenv venv vinit instanceof (IBlock m.body) with 
+    match typecheck_instruction cenv venv vinit instanceof m.result false (IBlock m.body) with 
     | IBlock body', vinit -> body', vinit 
     | _ -> assert false
   in
@@ -489,10 +512,11 @@ let typecheck_program (p : program) : TMJ.program =
     List.map (typecheck_class cenv instanceof) p.defs
   in
   let venv = SM.singleton "this" (Typ p.name) in
+  let main', _ = typecheck_instruction_list cenv venv S.empty instanceof TypInt false p.main in
   TMJ.{
     name = Location.content p.name;
     defs = defs';
     main_args = Location.content p.main_args;
-    main      = fst (typecheck_instruction cenv venv S.empty instanceof p.main)
+    main      = main'
   }
   

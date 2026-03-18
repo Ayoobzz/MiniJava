@@ -17,6 +17,7 @@
 %token IF ELSE WHILE
 %token EOF
 %token FOR DO
+%token BREAK CONTINUE
 
 %left OR
 %left AND
@@ -55,10 +56,10 @@ main_class:
    LBRACE
    PUBLIC STATIC VOID MAIN LPAREN STRING LBRACKET RBRACKET a = IDENT RPAREN
    LBRACE
-   i = instruction
+   is = list(instruction)
    RBRACE
    RBRACE
-   { (c, a, i) }
+   { (c, a, is) }
 
 defs:
 | c = list(clas)
@@ -190,8 +191,12 @@ instruction:
 
 | DO i = instruction WHILE LPAREN c = expression RPAREN SEMICOLON
    { IDoWhile (i, c) }
-| BREAK SEMICOLON
+
+| BREAK SEMICOLON 
    { IBreak }
+
+| CONTINUE SEMICOLON 
+   { IContinue }
 
 block:
 | LBRACE is = list(instruction) RBRACE

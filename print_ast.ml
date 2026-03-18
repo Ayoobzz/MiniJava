@@ -243,6 +243,13 @@ let rec print_instruction prefix out i =
      fprintf out "IDoWhile\n%s%s%a\n%s%s%a"
        prefix' branch (print_instruction (prefix' ^ pipe)) body
        prefix' branch_end (print_expression prefix') cond
+  | IBreak -> 
+     fprintf out "IBreak"
+  | IContinue -> 
+     fprintf out "IContinue"
+  | IReturn e ->
+     fprintf out "IReturn\n%s%s%a"
+       prefix' branch_end (print_expression prefix') e
 
 (** [print_instruction_list prefix out l] prints the list of instructions [l] on the output channel [out].
     [prefix] is the current prefix string, but currently the position in the output channel [out] is
@@ -351,4 +358,4 @@ let print out p show_loc =
     print_identifier p.main_args
     prefix
     branch_end
-    (print_instruction_list (prefix ^ " ")) [p.main]
+    (print_instruction_list (prefix ^ " ")) p.main

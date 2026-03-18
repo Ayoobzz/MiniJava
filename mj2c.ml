@@ -502,7 +502,14 @@ let instr2c
         instr2c body
         (expr2c method_name class_info) cond
 
-    | IBreak -> fprintf out "break;"
+    | IReturn e -> 
+      fprintf out "return %a;" (expr2c method_name class_info) e
+
+    | IBreak -> 
+      fprintf out "break;"
+
+    | IContinue -> 
+      fprintf out "continue;"
 
   in
   instr2c out ins
@@ -674,7 +681,7 @@ let program2c out (p : TMJ.program) : unit =
 
     (indent indentation print_string) "tgc_start(&gc, &argc);"
 
-    (indent indentation (instr2c "main" (get_class_info p.name)))
+    (term_list nl (indent indentation (instr2c "main" (get_class_info p.name))))
     p.main
 
     (indent indentation print_string) "tgc_stop(&gc);"
