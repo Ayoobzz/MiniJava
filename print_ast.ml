@@ -81,6 +81,20 @@ let print_binop out = function
      fprintf out "OpLt"
   | OpAnd ->
      fprintf out "OpAnd"
+  | OpDiv -> 
+     fprintf out "OpDiv"
+  | OpGt  -> 
+     fprintf out "OpGt"
+  | OpOr  -> 
+     fprintf out "OpOr"
+  | OpXor -> 
+     fprintf out "OpXor"
+  | OpBitAnd -> 
+     fprintf out "OpBitAnd"
+  | OpBitOr  -> 
+     fprintf out "OpBitOr"
+  | OpEq  -> 
+     fprintf out "OpEq"
 
 (** [print_expression prefix out e] prints the expression [e] on the output channel [out].
     [prefix] is the string already printed just before [e]. *)
@@ -217,6 +231,18 @@ let rec print_instruction prefix out i =
        prefix'
        branch_end
        (print_expression prefix') e2
+  | IFor (id1, e1, cond, id2, e2, body) ->
+      fprintf out "IFor\n%s%s%a\n%s%s%a\n%s%s%a\n%s%s%a\n%s%s%a\n%s%s%a"
+       prefix' branch print_identifier id1
+       prefix' branch (print_expression (prefix' ^ pipe)) e1
+       prefix' branch (print_expression (prefix' ^ pipe)) cond
+       prefix' branch print_identifier id2
+       prefix' branch (print_expression (prefix' ^ pipe)) e2
+       prefix' branch_end (print_instruction prefix') body
+  | IDoWhile (body, cond) ->
+     fprintf out "IDoWhile\n%s%s%a\n%s%s%a"
+       prefix' branch (print_instruction (prefix' ^ pipe)) body
+       prefix' branch_end (print_expression prefix') cond
 
 (** [print_instruction_list prefix out l] prints the list of instructions [l] on the output channel [out].
     [prefix] is the current prefix string, but currently the position in the output channel [out] is

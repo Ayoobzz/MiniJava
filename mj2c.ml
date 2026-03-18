@@ -299,8 +299,15 @@ let binop2c
   | OpAdd -> fprintf out "+"
   | OpSub -> fprintf out "-"
   | OpMul -> fprintf out "*"
+  | OpDiv -> fprintf out "/"
+  | OpBitAnd -> fprintf out "&"
+  | OpBitOr  -> fprintf out "|"
   | OpLt  -> fprintf out "<"
+  | OpGt  -> fprintf out ">"
   | OpAnd -> fprintf out "&&"
+  | OpOr  -> fprintf out "||"
+  | OpXor -> fprintf out "^"
+  | OpEq  -> fprintf out "=="
 
 (** [type2c out typ] transpiles the type [typ] to C on the output channel [out]. *)
 let type2c
@@ -474,6 +481,29 @@ let instr2c
     | ISyso e ->
        fprintf out "printf(\"%%d\\n\", %a);"
          (expr2c method_name class_info) e
+
+    | IFor (id1, typ1, e1, cond, id2, typ2, e2, body) ->
+      let id1_class = get_class typ1 in
+      let e1_class = get_class e1.typ in
+      let id2_class = get_class typ2 in
+      let e2_class = get_class e2.typ in
+      fprintf out "for (%a = %s%a; %a; %a = %s%a) %a"
+        (var2c method_name class_info) id1
+        (if id1_class <> e1_class then sprintf "(struct %s*) " id1_class else "")
+        (expr2c method_name class_info) e1
+        (expr2c method_name class_info) cond
+        (var2c method_name class_info) id2
+        (if id2_class <> e2_class then sprintf "(struct %s*) " id2_class else "")
+        (expr2c method_name class_info) e2
+        instr2c body
+
+    | IDoWhile (body, cond) ->
+      fprintf out "do %a while (%a);"
+        instr2c body
+        (expr2c method_name class_info) cond
+
+    | IBreak -> fprintf out "break;"
+
   in
   instr2c out ins
 

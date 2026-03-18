@@ -29,7 +29,13 @@ rule get_token = parse
   | '-'       { MINUS }
   | '*'       { TIMES }
   | "&&"      { AND }
+  | "||"      { OR }
+  | "&"       { BITAND }
+  | "|"       { BITOR }
   | "<"       { LT }
+  | ">"       { GT }
+  | "/"       { DIV }
+  | "^"       { XOR }
   | '('       { LPAREN }
   | ')'       { RPAREN }
   | '['       { LBRACKET }
@@ -39,6 +45,7 @@ rule get_token = parse
   | '.'       { DOT }
   | ';'       { SEMICOLON }
   | '='       { ASSIGN }
+  | "=="      { EQ }
   | ","       { COMMA }
   | "true"    { BOOL_CONST true }
   | "false"   { BOOL_CONST false }
@@ -61,6 +68,9 @@ rule get_token = parse
   | "if"    { IF }
   | "else"  { ELSE }
   | "while" { WHILE }
+  | "for"     { FOR }
+  | "do"      { DO }
+  | "break"  { BREAK }
   | integer as i
       {
         try

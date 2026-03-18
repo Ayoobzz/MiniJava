@@ -167,13 +167,28 @@ and typecheck_expression (cenv : class_env) (venv : variable_env) (vinit : S.t)
       mke (TMJ.EUnOp (op, e')) returned
 
   | EBinOp (op, e1, e2) ->
+      if op = OpEq then begin
+        let e1' = typecheck_expression cenv venv vinit instanceof e1 in
+        let e2' = typecheck_expression cenv venv vinit instanceof e2 in
+        match e1'.typ, e2'.typ with
+        | TypInt, TypInt -> mke (TMJ.EBinOp (op, e1', e2')) TypBool
+        | TypBool, TypBool -> mke (TMJ.EBinOp (op, e1', e2')) TypBool
+        | _ -> error e1 "Equality expects two integers or two booleans"
+      end else
       let expected, returned =
         match op with
         | OpAdd
         | OpSub
         | OpMul -> TypInt, TypInt
+        | OpDiv -> TypInt, TypInt
+        | OpBitAnd -> TypInt, TypInt
+        | OpBitOr  -> TypInt, TypInt
         | OpLt  -> TypInt, TypBool
+        | OpGt  -> TypInt, TypBool
         | OpAnd -> TypBool, TypBool
+        | OpOr  -> TypBool, TypBool
+        | OpXor -> TypBool, TypBool
+        | OpEq -> assert false
       in
       let e1' = typecheck_expression_expecting cenv venv vinit instanceof expected e1 in
       let e2' = typecheck_expression_expecting cenv venv vinit instanceof expected e2 in
@@ -255,6 +270,22 @@ let rec typecheck_instruction (cenv : class_env) (venv : variable_env) (vinit : 
   | ISyso e ->
      let e' = typecheck_expression_expecting cenv venv vinit instanceof TypInt e in
      (TMJ.ISyso e', vinit)
+  
+  | IFor (id1, e1, cond, id2, e2, body) ->
+      let vinit = S.add (Location.content id1) vinit in
+      let typ1 = vlookup id1 venv in
+      let e1' = typecheck_expression_expecting cenv venv vinit instanceof typ1 e1 in
+      let cond' = typecheck_expression_expecting cenv venv vinit instanceof TypBool cond in
+      let typ2 = vlookup id2 venv in
+      let vinit2 = S.add (Location.content id2) vinit in
+      let e2' = typecheck_expression_expecting cenv venv vinit2 instanceof typ2 e2 in
+      let body', _ = typecheck_instruction cenv venv vinit instanceof body in
+      (TMJ.IFor (Location.content id1, type_lmj_to_tmj typ1, e1', cond', Location.content id2, type_lmj_to_tmj typ2, e2', body'), vinit)
+
+  | IDoWhile (body, cond) ->
+      let body', vinit1 = typecheck_instruction cenv venv vinit instanceof body in
+      let cond' = typecheck_expression_expecting cenv venv vinit1 instanceof TypBool cond in
+      (TMJ.IDoWhile (body', cond'), vinit)
 
 (** [occurences x bindings] returns the elements in [bindings] that have [x] has identifier. *)
 let occurrences (x : string) (bindings : (identifier * 'a) list) : identifier list =

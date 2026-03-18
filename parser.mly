@@ -8,7 +8,7 @@
 %token INTEGER BOOLEAN
 %token <string Location.t> IDENT
 %token CLASS PUBLIC STATIC VOID MAIN STRING EXTENDS RETURN
-%token PLUS MINUS TIMES NOT LT AND
+%token PLUS MINUS TIMES DIV NOT LT GT AND OR XOR BITAND BITOR EQ
 %token COMMA SEMICOLON
 %token ASSIGN
 %token LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
@@ -16,13 +16,21 @@
 %token SYSO
 %token IF ELSE WHILE
 %token EOF
+%token FOR DO
 
+%left OR
 %left AND
-%nonassoc LT
+%left BITOR
+%left XOR
+%left BITAND
+%left EQ
+%nonassoc LT GT
 %left PLUS MINUS
-%left TIMES
+%left TIMES DIV
 %nonassoc NOT
 %nonassoc DOT LBRACKET
+%nonassoc IFX
+%nonassoc ELSE
 
 %start program
 
@@ -145,8 +153,15 @@ raw_expression:
 | PLUS  { OpAdd }
 | MINUS { OpSub }
 | TIMES { OpMul }
+| DIV   { OpDiv }
 | LT    { OpLt }
+| GT    { OpGt }
 | AND   { OpAnd }
+| OR    { OpOr }
+| XOR   { OpXor }
+| BITAND { OpBitAnd }
+| BITOR  { OpBitOr }
+| EQ     { OpEq }
 
 instruction:
 | b = block
@@ -166,6 +181,17 @@ instruction:
 
 | WHILE LPAREN c = expression RPAREN i = instruction
    { IWhile (c, i) }
+
+| IF LPAREN c = expression RPAREN i = instruction %prec IFX
+   { IIf (c, i, IBlock []) }
+
+| FOR LPAREN id1 = IDENT ASSIGN e1 = expression SEMICOLON c = expression SEMICOLON id2 = IDENT ASSIGN e2 = expression RPAREN i = instruction
+   { IFor (id1, e1, c, id2, e2, i) }
+
+| DO i = instruction WHILE LPAREN c = expression RPAREN SEMICOLON
+   { IDoWhile (i, c) }
+| BREAK SEMICOLON
+   { IBreak }
 
 block:
 | LBRACE is = list(instruction) RBRACE

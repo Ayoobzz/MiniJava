@@ -96,13 +96,13 @@ let () =
     (** [translate_program] is used to get rid of the position informations.
         We don't need them after the typechecking phase. *)
     let output = open_out !ofile in
-    Printf.fprintf output "/*\n";
+    (* Printf.fprintf output "/*\n";
     PrintTMJ.print_program output tmj;
-    Printf.fprintf output "*/\n";
+    Printf.fprintf output "*/\n"; *)
     Mj2c.program2c output tmj;
     close_out output;
     match
-      Unix.system(Printf.sprintf "%s %s -o %s -I%s %s/tgc.o"
+      Unix.system(Printf.sprintf "%s %s -std=c99 -o %s -I%s %s/tgc.o"
                     !cc !ofile (Filename.chop_extension !ifile) !tgc_path !tgc_path)
     with
     | Unix.WEXITED code -> exit code

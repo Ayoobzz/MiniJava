@@ -90,6 +90,24 @@ let print_token show_loc out = function
      fprintf out "WHILE"
   | EOF ->
      fprintf out "EOF"
+  | GT -> 
+     fprintf out "GT"
+  | OR -> 
+     fprintf out "OR"
+  | XOR -> 
+     fprintf out "XOR"
+  | DIV -> 
+     fprintf out "DIV"
+  | BITAND -> 
+     fprintf out "BITAND"
+  | BITOR -> 
+     fprintf out "BITOR"
+  | EQ -> 
+     fprintf out "EQ"
+  | FOR -> 
+     fprintf out "FOR"
+  | DO -> 
+     fprintf out "DO"
 
 let print out lexbuf show_loc =
   let token = ref (Lexer.get_token lexbuf) in

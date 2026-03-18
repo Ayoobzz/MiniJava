@@ -30,8 +30,15 @@ and binop =
   | OpAdd (** Binary operator [+]. *)
   | OpSub (** Binary operator [-]. *)
   | OpMul (** Binary operator [*]. *)
+  | OpDiv (** Binary operator [/]. *)
   | OpLt  (** Binary operator [<]. *)
+  | OpGt  (** Binary operator [>]. *)
   | OpAnd (** Binary operator [&&]. *)
+  | OpOr  (** Binary operator [||]. *)
+  | OpXor (** Binary operator [^]. *)
+  | OpBitAnd (** Binary operator [&]. *)
+  | OpBitOr  (** Binary operator [|]. *)
+  | OpEq  (** Binary operator [==]. *)
 
 and unop = UOpNot (** Unary operator [!]. *)
 
@@ -42,6 +49,9 @@ and instruction =
   | ISyso of expression (** [ISyso e] represents the instruction [System.out.println(e);]. *)
   | ISetVar of identifier * expression (** [ISetVar (id, e)] represents the instruction [id = e;]. *)
   | IArraySet of identifier * expression * expression (** [IArraySet (id, e1, e2)] represents the instruction [id[e1] = e2;]. *)
+  | IFor of identifier * expression * expression * identifier * expression * instruction
+  | IDoWhile of instruction * expression
+  | IBreak 
 
 and typ =
   | TypInt (** Type [int]. *)
