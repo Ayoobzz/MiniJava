@@ -30,7 +30,6 @@ rule get_token = parse
   | '*'       { TIMES }
   | "&&"      { AND }
   | "||"      { OR }
-  | "&"       { BITAND }
   | "|"       { BITOR }
   | "<"       { LT }
   | ">"       { GT }
@@ -52,7 +51,6 @@ rule get_token = parse
   | "int"     { INTEGER }
   | "boolean" { BOOLEAN }
   | "!"       { NOT }
-  | ","       { COMMA }
   | "class"   { CLASS }
   | "public"  { PUBLIC }
   | "static"  { STATIC }
@@ -70,7 +68,6 @@ rule get_token = parse
   | "while" { WHILE }
   | "for"     { FOR }
   | "do"      { DO }
-  | "return"   { RETURN }
   | "break"    { BREAK }
   | "continue" { CONTINUE }
   | integer as i

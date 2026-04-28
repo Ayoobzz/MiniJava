@@ -74,5 +74,6 @@ and program = {
     name: identifier;
     defs: (identifier * clas) list;
     main_args: identifier;
+    main_locals: (identifier * typ) list;
     main: instruction list
   }

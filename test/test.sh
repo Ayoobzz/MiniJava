@@ -139,7 +139,7 @@ function test_typechecking() {
 }
 
 function diff_runtime() {
-    diff <(${MINIJAVA} --tgc-path=${SCRIPT_DIR}/../tgc ${1} && ./${1/.java/}) <(javac ${1} && java ${1/.java/})
+    diff <(${MINIJAVA} --tgc-path=${SCRIPT_DIR}/../tgc ${1} && ./${1/.java/}) <(javac --release 8 ${1} && java ${1/.java/})
 }
 
 function test_runtime() {

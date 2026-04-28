@@ -4,6 +4,7 @@ public class Break {
         while (i < 10) {
             if (i == 5) {
                 break;
+            } else {
             }
             i = i + 1;
         }

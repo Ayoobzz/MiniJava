@@ -206,10 +206,10 @@ module ClassInfo : ClassInfoType = struct
 
   let is_attribute m v class_info =
     try
-      find_variable_type m v class_info
-      |> ignore;
+      find_variable_type m v class_info |> ignore;
       false
-    with Not_found -> true
+    with Not_found ->
+      SM.mem v class_info.attribute_info
 
   let method_class_origin m class_info =
     let orig, _, _ = SM.find m class_info.method_info in
@@ -257,17 +257,23 @@ let class_infos = Hashtbl.create 57
 
 (** [init_class_infos p] fills the [class_infos] hash table using the classes defined in [p]. *)
 let init_class_infos (p : TMJ.program) : unit =
-  let main =
-    {
-      extends = None;
-      attributes = [];
-      methods = []
-    }
-  in
-  ClassInfo.create p.name main p.defs
+  (** Create synthetic main class definition with main method *)
+  let main_clas = {
+    TMJ.extends = None;
+    attributes = [];
+    methods = [ ("main", {
+      TMJ.formals = [];
+      result = TMJ.TypInt;
+      locals = p.main_locals;
+      body = [];
+      return = { TMJ.raw_expression = TMJ.EConst (TMJ.ConstInt 0l); typ = TMJ.TypInt }
+    }) ]
+  } in
+  (** Add the main class to defs so ClassInfo.create can process it *)
+  let defs_with_main = (p.name, main_clas) :: p.defs in
+  ClassInfo.create p.name main_clas defs_with_main
   |> Hashtbl.add class_infos p.name;
-  (** For each class in the program [p] we create a [class_info] and we add it to
-      the hash table [class_infos]. *)
+  (** For each user-defined class *)
   List.iter
     (fun (class_name, clas) ->
       ClassInfo.create class_name clas p.defs
@@ -337,8 +343,10 @@ let var2c
       (v : string)
     : unit =
   if ClassInfo.is_attribute method_name v class_info then
-    let class_origin = ClassInfo.attribute_class_origin v class_info in
-    fprintf out "this->%s_%s" class_origin v
+    (try
+       let class_origin = ClassInfo.attribute_class_origin v class_info in
+       fprintf out "this->%s_%s" class_origin v
+     with Not_found -> fprintf out "%s" v)
   else fprintf out "%s" v
 
 (** [get_class typ] gets the class name of the the type [typ].
@@ -659,6 +667,7 @@ let program2c out (p : TMJ.program) : unit =
      int main(int argc, char *argv[]) {\
      %a\
      %a\
+     %a\
      %a\n\
      %a\n\
      }\n"
@@ -680,6 +689,10 @@ let program2c out (p : TMJ.program) : unit =
     (List.filter (fun (_, c) -> c.methods <> []) p.defs)
 
     (indent indentation print_string) "tgc_start(&gc, &argc);"
+
+    (term_list nl (fun out (id, t) -> 
+      fprintf out "%a %s;" type2c t id))
+    p.main_locals
 
     (term_list nl (indent indentation (instr2c "main" (get_class_info p.name))))
     p.main

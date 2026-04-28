@@ -512,11 +512,13 @@ let typecheck_program (p : program) : TMJ.program =
     List.map (typecheck_class cenv instanceof) p.defs
   in
   let venv = SM.singleton "this" (Typ p.name) in
+  let venv = List.fold_left (fun env (id, t) -> SM.add (Location.content id) t env) venv p.main_locals in
   let main', _ = typecheck_instruction_list cenv venv S.empty instanceof TypInt false p.main in
   TMJ.{
     name = Location.content p.name;
     defs = defs';
     main_args = Location.content p.main_args;
+    main_locals = List.map (fun (id, t) -> (Location.content id, type_lmj_to_tmj t)) p.main_locals;
     main      = main'
   }
   

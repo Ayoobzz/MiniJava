@@ -79,6 +79,7 @@ and program = {
   name: identifier; (** The name of the main class. *)
   defs: (identifier * clas) list; (** The names and definitions of the other classes. *)
   main_args: identifier; (** The name of the parameter of the main method in the main class. *)
+  main_locals: (identifier * typ) list; (** The local variables declared in the main method. *)
   main: instruction list (** In MiniJava the main has only one instruction (but you can use
                         a block if you want more than one). *)
 }

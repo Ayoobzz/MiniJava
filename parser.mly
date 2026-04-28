@@ -41,25 +41,35 @@
 
 program:
 | m = main_class d = defs EOF
-   {
-     let c, a, i = m in
-     {
-       name = c;
-       defs = d;
-       main_args = a;
-       main = i
-     }
-   }
+    {
+       let c, a, ds = m in
+       let d_main, is = ds in
+       {
+          name = c;
+          defs = d;
+          main_args = a;
+          main_locals = d_main;
+          main = is
+       }
+    }
 
 main_class:
 | CLASS c = IDENT
    LBRACE
    PUBLIC STATIC VOID MAIN LPAREN STRING LBRACKET RBRACKET a = IDENT RPAREN
    LBRACE
-   is = list(instruction)
+   ds = declarations_and_statements
    RBRACE
    RBRACE
-   { (c, a, is) }
+   { (c, a, ds) }
+| PUBLIC CLASS c = IDENT
+   LBRACE
+   PUBLIC STATIC VOID MAIN LPAREN STRING LBRACKET RBRACKET a = IDENT RPAREN
+   LBRACE
+   ds = declarations_and_statements
+   RBRACE
+   RBRACE
+   { (c, a, ds) }
 
 defs:
 | c = list(clas)
@@ -102,6 +112,11 @@ metho:
    }
 
 declarations_and_statements:
+| t = typ id = IDENT ASSIGN e = expression SEMICOLON r = declarations_and_statements
+   {
+     let d, s = r in
+     ((id, t) :: d, (ISetVar (id, e)) :: s)
+   }
 | t = typ id = IDENT SEMICOLON r = declarations_and_statements
    {
      let d, s = r in
@@ -182,9 +197,6 @@ instruction:
 
 | WHILE LPAREN c = expression RPAREN i = instruction
    { IWhile (c, i) }
-
-| IF LPAREN c = expression RPAREN i = instruction %prec IFX
-   { IIf (c, i, IBlock []) }
 
 | FOR LPAREN id1 = IDENT ASSIGN e1 = expression SEMICOLON c = expression SEMICOLON id2 = IDENT ASSIGN e2 = expression RPAREN i = instruction
    { IFor (id1, e1, c, id2, e2, i) }
